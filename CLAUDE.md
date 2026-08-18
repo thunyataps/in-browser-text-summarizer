@@ -26,11 +26,17 @@ live there; don't re-litigate them without checking it first.
   language handling below.
 - **Generation params (repetition guard)**: both `runSummary()` and
   `runTranslation()` (`src/workers/pipelineManager.ts`,
-  `translationManager.ts`) pass `repetition_penalty: 1.3` and
-  `no_repeat_ngram_size: 3`; `runTranslation()` also caps `max_new_tokens:
-  256`. Added after m2m100 degenerated into an unbounded single-character
-  repetition loop (`runTranslation()` originally had zero generation
-  constraints — no length cap, no repetition penalty). Don't strip these.
+  `translationManager.ts`) pass `no_repeat_ngram_size: 3`; `runTranslation()`
+  also caps `max_new_tokens: 256`. Added after m2m100 degenerated into an
+  unbounded single-character repetition loop (`runTranslation()` originally
+  had zero generation constraints — no length cap, no repeat guard). Don't
+  strip these. Deliberately does **not** use `repetition_penalty` — tried
+  `1.3`, it globally penalizes reusing recently-generated tokens, which
+  broke *legitimate* repetition (e.g. "Lion" needing to recur across a
+  story) and produced wrong-word mistranslations. `no_repeat_ngram_size`
+  alone blocks verbatim n-gram loops (the actual bug) without penalizing
+  isolated word reuse — don't reintroduce `repetition_penalty` without
+  testing translation quality on multi-sentence input first.
 - **Input language handling**: the summarizer (`distilbart-cnn-6-6`) is
   English-only; feeding it Thai directly caused hallucinated/garbled output
   (confirmed in testing). `src/utils/languageDetect.ts`'s `isThaiText()`
