@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TextInput } from './components/TextInput'
+import { UrlInput } from './components/UrlInput'
 import { SummarizeButton } from './components/SummarizeButton'
 import { LoadingProgress } from './components/LoadingProgress'
 import { ErrorBanner } from './components/ErrorBanner'
@@ -44,6 +45,8 @@ function App() {
           Runs entirely in your browser. Nothing you type ever leaves this page.
         </p>
       </header>
+
+      <UrlInput onArticleFetched={setText} />
 
       <TextInput value={text} onChange={setText} />
 

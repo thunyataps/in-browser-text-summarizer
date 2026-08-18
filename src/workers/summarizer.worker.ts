@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { getSummarizerPipeline, runSummary } from './pipelineManager'
+import { getTranslatorPipeline, runTranslation } from './translationManager'
 
 export type WorkerRequest = { type: 'load' } | { type: 'summarize'; text: string }
 
@@ -28,8 +29,14 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
       const summarizer = await getSummarizerPipeline((data) =>
         postResponse({ status: 'progress', data }),
       )
-      const summary = await runSummary(summarizer, message.text)
-      postResponse({ status: 'complete', summary })
+      const englishSummary = await runSummary(summarizer, message.text)
+
+      const translator = await getTranslatorPipeline((data) =>
+        postResponse({ status: 'progress', data }),
+      )
+      const thaiSummary = await runTranslation(translator, englishSummary)
+
+      postResponse({ status: 'complete', summary: thaiSummary })
     } catch (error) {
       postResponse({ status: 'error', message: toErrorMessage(error) })
     }
