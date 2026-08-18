@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi } from 'vitest'
 import App from './App'
@@ -54,6 +54,49 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Retry' }))
     expect(summarize).toHaveBeenCalled()
+  })
+
+  it('keeps the stats bar snapshotted to the text that was actually summarized', async () => {
+    const summarize = vi.fn()
+    vi.spyOn(useSummarizerModule, 'useSummarizer').mockReturnValue({
+      status: 'ready',
+      progress: 0,
+      summary: 'A short summary.',
+      error: null,
+      summarize,
+    })
+
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.type(screen.getByLabelText('Article text'), 'one two three four five')
+    await user.click(screen.getByRole('button', { name: 'Summarize' }))
+
+    expect(screen.getByText('5 words')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Article text'), ' six seven eight nine')
+
+    expect(screen.getByText('5 words')).toBeInTheDocument()
+    expect(screen.queryByText('9 words')).not.toBeInTheDocument()
+  })
+
+  it('shows the truncation warning when the input exceeds the max word limit', () => {
+    vi.spyOn(useSummarizerModule, 'useSummarizer').mockReturnValue({
+      status: 'idle',
+      progress: 0,
+      summary: null,
+      error: null,
+      summarize: vi.fn(),
+    })
+
+    render(<App />)
+
+    const longText = Array.from({ length: 800 }, (_, i) => `word${i}`).join(' ')
+    fireEvent.change(screen.getByLabelText('Article text'), { target: { value: longText } })
+
+    expect(
+      screen.getByText('Your text is long — only the first part will be summarized.'),
+    ).toBeInTheDocument()
   })
 
   it('shows a warning when the browser is unsupported and blocks the form', () => {

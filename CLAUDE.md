@@ -37,7 +37,9 @@ src/
   components/   # TextInput, SummarizeButton, LoadingProgress, SummaryOutput, StatsBar, ErrorBanner
   hooks/        # useSummarizer.ts — the ONLY thing that talks to the worker
   workers/      # summarizer.worker.ts — owns the pipeline singleton
+                # pipelineManager.ts — loads the Transformers.js pipeline, WebGPU->WASM fallback
   utils/        # textStats.ts, textLimits.ts — pure functions, unit tested
+                # browserSupport.ts — feature-detects Web Workers/WebAssembly support
 ```
 
 Components must never touch `postMessage` directly — always go through
@@ -51,5 +53,12 @@ manually.
 
 ## Current status
 
-Spec approved, not yet implemented. Next step: `writing-plans` skill to produce
-an implementation plan, then execute it.
+Implementation complete: all 10 planned tasks are done, individually reviewed,
+and merged, plus a post-merge whole-branch review cleanup pass. Automated tests
+(Vitest) and the production build (`npm run build`) pass.
+
+Not yet done: manual browser QA. The automated suite mocks the worker and the
+Transformers.js pipeline, so a human still needs to verify in a real browser
+before shipping/deploying — actual model download and caching, WASM inference,
+WebGPU inference (where supported), and a cross-browser check (Chrome, Edge,
+Firefox, Safari).

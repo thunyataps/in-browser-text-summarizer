@@ -23,17 +23,22 @@ export async function getSummarizerPipeline(
 
 async function loadPipeline(onProgress: (data: unknown) => void): Promise<SummarizerPipeline> {
   try {
-    return (await pipeline('summarization', 'Xenova/distilbart-cnn-6-6', {
+    const summarizer = (await pipeline('summarization', 'Xenova/distilbart-cnn-6-6', {
       dtype: 'q8',
       device: 'webgpu',
       progress_callback: onProgress,
     })) as unknown as SummarizerPipeline
-  } catch {
-    return (await pipeline('summarization', 'Xenova/distilbart-cnn-6-6', {
+    console.info('[pipelineManager] Loaded summarization pipeline on backend: webgpu')
+    return summarizer
+  } catch (error) {
+    console.warn('[pipelineManager] WebGPU backend failed, falling back to wasm:', error)
+    const summarizer = (await pipeline('summarization', 'Xenova/distilbart-cnn-6-6', {
       dtype: 'q8',
       device: 'wasm',
       progress_callback: onProgress,
     })) as unknown as SummarizerPipeline
+    console.info('[pipelineManager] Loaded summarization pipeline on backend: wasm')
+    return summarizer
   }
 }
 

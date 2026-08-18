@@ -23,7 +23,7 @@ describe('pipelineManager', () => {
     expect(pipelineMock).toHaveBeenCalledWith(
       'summarization',
       'Xenova/distilbart-cnn-6-6',
-      expect.objectContaining({ device: 'webgpu' }),
+      expect.objectContaining({ device: 'webgpu', dtype: 'q8' }),
     )
   })
 
@@ -38,7 +38,7 @@ describe('pipelineManager', () => {
       2,
       'summarization',
       'Xenova/distilbart-cnn-6-6',
-      expect.objectContaining({ device: 'wasm' }),
+      expect.objectContaining({ device: 'wasm', dtype: 'q8' }),
     )
   })
 

@@ -21,6 +21,7 @@ beforeEach(() => {
   vi.stubGlobal(
     'Worker',
     vi.fn(function () {
+      lastWorker = new FakeWorker()
       return lastWorker
     }),
   )
@@ -90,5 +91,34 @@ describe('useSummarizer', () => {
     act(() => result.current.summarize('text'))
     expect(result.current.status).toBe('loading')
     expect(result.current.error).toBeNull()
+  })
+
+  it('does not let progress decrease when a later event reports a lower percent', () => {
+    const { result } = renderHook(() => useSummarizer())
+
+    act(() => result.current.summarize('text'))
+    act(() => lastWorker.emit({ status: 'progress', data: { progress: 80 } }))
+    expect(result.current.progress).toBe(80)
+
+    act(() => lastWorker.emit({ status: 'progress', data: { progress: 10 } }))
+    expect(result.current.progress).toBe(80)
+  })
+
+  it('respawns a fresh worker on retry after a worker crash instead of reusing the dead one', () => {
+    const { result } = renderHook(() => useSummarizer())
+
+    act(() => result.current.summarize('text'))
+    const crashedWorker = lastWorker
+    expect(global.Worker).toHaveBeenCalledTimes(1)
+
+    act(() => crashedWorker.onerror?.())
+    expect(result.current.status).toBe('error')
+    expect(crashedWorker.terminate).toHaveBeenCalled()
+
+    act(() => result.current.summarize('text'))
+
+    expect(global.Worker).toHaveBeenCalledTimes(2)
+    expect(lastWorker).not.toBe(crashedWorker)
+    expect(result.current.status).toBe('loading')
   })
 })

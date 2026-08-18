@@ -19,4 +19,14 @@ describe('SummaryOutput', () => {
     expect(writeTextSpy).toHaveBeenCalledWith('A short summary.')
     expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
   })
+
+  it('shows a failure state when the clipboard write is rejected', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('denied'))
+    render(<SummaryOutput summary="A short summary." />)
+
+    await user.click(screen.getByRole('button', { name: 'Copy' }))
+
+    expect(await screen.findByRole('button', { name: 'Copy failed' })).toBeInTheDocument()
+  })
 })

@@ -11,6 +11,7 @@ import { isBrowserSupported } from './utils/browserSupport'
 
 function App() {
   const [text, setText] = useState('')
+  const [submittedText, setSubmittedText] = useState('')
   const { status, progress, summary, error, summarize } = useSummarizer()
 
   if (!isBrowserSupported()) {
@@ -28,6 +29,7 @@ function App() {
   const isBusy = status === 'loading' || status === 'summarizing'
 
   function handleSummarize() {
+    setSubmittedText(limitedText)
     summarize(limitedText)
   }
 
@@ -62,7 +64,7 @@ function App() {
       {summary && (
         <>
           <SummaryOutput summary={summary} />
-          <StatsBar original={limitedText} summary={summary} />
+          <StatsBar original={submittedText} summary={summary} />
         </>
       )}
     </div>

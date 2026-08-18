@@ -1,17 +1,41 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface SummaryOutputProps {
   summary: string
 }
 
+type CopyState = 'idle' | 'copied' | 'failed'
+
 export function SummaryOutput({ summary }: SummaryOutputProps) {
-  const [copied, setCopied] = useState(false)
+  const [copyState, setCopyState] = useState<CopyState>('idle')
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    setCopyState('idle')
+  }, [summary])
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== null) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  function scheduleReset() {
+    if (timeoutRef.current !== null) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => setCopyState('idle'), 2000)
+  }
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(summary)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(summary)
+      setCopyState('copied')
+    } catch {
+      setCopyState('failed')
+    }
+    scheduleReset()
   }
+
+  const label = copyState === 'copied' ? 'Copied!' : copyState === 'failed' ? 'Copy failed' : 'Copy'
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4">
@@ -22,7 +46,7 @@ export function SummaryOutput({ summary }: SummaryOutputProps) {
           onClick={handleCopy}
           className="text-xs font-medium text-slate-600 hover:text-slate-900"
         >
-          {copied ? 'Copied!' : 'Copy'}
+          {label}
         </button>
       </div>
       <p className="whitespace-pre-wrap text-sm text-slate-800">{summary}</p>

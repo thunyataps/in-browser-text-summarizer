@@ -28,7 +28,7 @@ export function useSummarizer(): UseSummarizerResult {
         const message = event.data
         if (message.status === 'progress') {
           const percent = extractProgressPercent(message.data)
-          if (percent !== null) setProgress(percent)
+          if (percent !== null) setProgress((prev) => Math.max(prev, percent))
         } else if (message.status === 'ready') {
           const pending = pendingTextRef.current
           if (pending !== null) {
@@ -47,6 +47,8 @@ export function useSummarizer(): UseSummarizerResult {
         }
       }
       worker.onerror = () => {
+        workerRef.current?.terminate()
+        workerRef.current = null
         setError('The summarizer worker crashed unexpectedly.')
         setStatus('error')
       }
