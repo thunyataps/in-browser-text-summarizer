@@ -37,6 +37,14 @@ live there; don't re-litigate them without checking it first.
   alone blocks verbatim n-gram loops (the actual bug) without penalizing
   isolated word reuse — don't reintroduce `repetition_penalty` without
   testing translation quality on multi-sentence input first.
+- **Decoding strategy**: both use `num_beams: 4` (beam search, still fully
+  local/in-browser — no external API). Added because greedy decoding
+  (the implicit default) produced confidently-wrong word choices even after
+  the repetition-loop bug was fixed (e.g. "Lion" mistranslated as "เลีย"/lick)
+  — a known weakness of greedy decoding, not something a repetition penalty
+  fixes. Costs more compute per request than greedy; if load time becomes a
+  complaint, lower before removing (e.g. `num_beams: 2`) rather than
+  reverting to greedy outright.
 - **Input language handling**: the summarizer (`distilbart-cnn-6-6`) is
   English-only; feeding it Thai directly caused hallucinated/garbled output
   (confirmed in testing). `src/utils/languageDetect.ts`'s `isThaiText()`

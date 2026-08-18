@@ -39,6 +39,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
         postResponse({ status: 'progress', data }),
       )
       const englishSummary = await runSummary(summarizer, englishInput)
+      console.info('[summarizer.worker] English summary:', englishSummary)
 
       const thaiSummary = await runTranslation(translator, englishSummary, 'en', 'th')
 

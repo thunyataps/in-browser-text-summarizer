@@ -58,6 +58,7 @@ export async function runTranslation(
     tgt_lang: tgtLang,
     max_new_tokens: 256,
     no_repeat_ngram_size: 3,
+    num_beams: 4,
   })
   return output[0].translation_text.trim()
 }

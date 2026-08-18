@@ -52,6 +52,7 @@ export async function runSummary(summarizer: SummarizerPipeline, text: string): 
     max_new_tokens: 150,
     min_new_tokens: 30,
     no_repeat_ngram_size: 3,
+    num_beams: 4,
   })
   return output[0].summary_text.trim()
 }
