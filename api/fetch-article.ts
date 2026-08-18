@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { promises as dns } from 'node:dns'
 import { isIP } from 'node:net'
-import { JSDOM } from 'jsdom'
+import { parseHTML } from 'linkedom'
 import { Readability } from '@mozilla/readability'
 
 const MIN_ARTICLE_LENGTH = 100
@@ -57,8 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const html = await response.text()
-    const dom = new JSDOM(html, { url: target.toString() })
-    const reader = new Readability(dom.window.document)
+    const { document } = parseHTML(html)
+    const reader = new Readability(document as unknown as Document)
     const article = reader.parse()
 
     if (!article?.textContent || article.textContent.trim().length < MIN_ARTICLE_LENGTH) {
