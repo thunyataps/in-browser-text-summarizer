@@ -1,4 +1,5 @@
 import { pipeline } from '@huggingface/transformers'
+import { loadWithStallGuard } from './pipelineLoadGuard'
 
 export type SummarizerPipeline = (
   text: string,
@@ -23,11 +24,15 @@ export async function getSummarizerPipeline(
 
 async function loadPipeline(onProgress: (data: unknown) => void): Promise<SummarizerPipeline> {
   try {
-    const summarizer = (await pipeline('summarization', 'Xenova/distilbart-cnn-6-6', {
-      dtype: 'q8',
-      device: 'webgpu',
-      progress_callback: onProgress,
-    })) as unknown as SummarizerPipeline
+    const summarizer = (await loadWithStallGuard(
+      (progress) =>
+        pipeline('summarization', 'Xenova/distilbart-cnn-6-6', {
+          dtype: 'q8',
+          device: 'webgpu',
+          progress_callback: progress,
+        }),
+      onProgress,
+    )) as unknown as SummarizerPipeline
     console.info('[pipelineManager] Loaded summarization pipeline on backend: webgpu')
     return summarizer
   } catch (error) {

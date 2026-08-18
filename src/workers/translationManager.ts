@@ -1,4 +1,5 @@
 import { pipeline } from '@huggingface/transformers'
+import { loadWithStallGuard } from './pipelineLoadGuard'
 
 export type TranslatorPipeline = (
   text: string,
@@ -23,11 +24,15 @@ export async function getTranslatorPipeline(
 
 async function loadTranslator(onProgress: (data: unknown) => void): Promise<TranslatorPipeline> {
   try {
-    const translator = (await pipeline('translation', 'Xenova/m2m100_418M', {
-      dtype: 'q8',
-      device: 'webgpu',
-      progress_callback: onProgress,
-    })) as unknown as TranslatorPipeline
+    const translator = (await loadWithStallGuard(
+      (progress) =>
+        pipeline('translation', 'Xenova/m2m100_418M', {
+          dtype: 'q8',
+          device: 'webgpu',
+          progress_callback: progress,
+        }),
+      onProgress,
+    )) as unknown as TranslatorPipeline
     console.info('[translationManager] Loaded translation pipeline on backend: webgpu')
     return translator
   } catch (error) {
