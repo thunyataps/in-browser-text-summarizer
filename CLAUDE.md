@@ -15,13 +15,34 @@ live there; don't re-litigate them without checking it first.
 - **Summarization model**: `Xenova/distilbart-cnn-6-6`, quantized `q8`. Chosen
   over t5-small (worse summaries) and bart-large-cnn (too heavy for browser).
   Don't swap without updating the spec.
-- **Translation model**: `Xenova/m2m100_418M`, quantized `q8`
-  (`src_lang: 'en'`, `tgt_lang: 'th'`). English summary is translated to Thai
-  as a second pipeline stage in the same worker — this is the only viable
-  Xenova-converted model with real Thai support; smaller options don't exist.
-  Adds ~630MB to the download (checked before choosing: no lightweight
-  English→Thai model exists in the Transformers.js ecosystem). Chosen over
-  `nllb-200-distilled-600M` (~850MB, heavier) for size.
+- **Translation model**: `Xenova/m2m100_418M`, quantized `q8`. English summary
+  is translated to Thai (`src_lang: 'en'`, `tgt_lang: 'th'`) as a second
+  pipeline stage in the same worker — this is the only viable Xenova-converted
+  model with real Thai support; smaller options don't exist. Adds ~630MB to
+  the download (checked before choosing: no lightweight English→Thai model
+  exists in the Transformers.js ecosystem). Chosen over
+  `nllb-200-distilled-600M` (~850MB, heavier) for size. Being multilingual,
+  it's also reused bidirectionally for Thai-language *input* — see input
+  language handling below.
+- **Generation params (repetition guard)**: both `runSummary()` and
+  `runTranslation()` (`src/workers/pipelineManager.ts`,
+  `translationManager.ts`) pass `repetition_penalty: 1.3` and
+  `no_repeat_ngram_size: 3`; `runTranslation()` also caps `max_new_tokens:
+  256`. Added after m2m100 degenerated into an unbounded single-character
+  repetition loop (`runTranslation()` originally had zero generation
+  constraints — no length cap, no repetition penalty). Don't strip these.
+- **Input language handling**: the summarizer (`distilbart-cnn-6-6`) is
+  English-only; feeding it Thai directly caused hallucinated/garbled output
+  (confirmed in testing). `src/utils/languageDetect.ts`'s `isThaiText()`
+  (Thai Unicode block ratio, 15% threshold of non-whitespace chars) detects
+  Thai input in `summarizer.worker.ts`'s `summarize` handler; if detected,
+  the input is pre-translated th→en via the already-loaded `m2m100`
+  translator *before* summarization, then the English summary is translated
+  en→th as before. No new model is loaded for this — same translator, both
+  directions. This means the translator now sometimes loads before the
+  summarizer within the `summarize` handler (order depends on input
+  language), though it's still loaded lazily on-demand inside that handler,
+  never during the initial `load` warm-up.
 - **Backend**: try WebGPU, fall back to WASM automatically for both models.
   Not a user-facing toggle. The WebGPU attempt is wrapped in a stall guard
   (`src/workers/pipelineLoadGuard.ts`, 15s of no progress event) that forces

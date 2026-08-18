@@ -2,6 +2,7 @@
 
 import { getSummarizerPipeline, runSummary } from './pipelineManager'
 import { getTranslatorPipeline, runTranslation } from './translationManager'
+import { isThaiText } from '../utils/languageDetect'
 
 export type WorkerRequest = { type: 'load' } | { type: 'summarize'; text: string }
 
@@ -26,15 +27,20 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 
   if (message.type === 'summarize') {
     try {
-      const summarizer = await getSummarizerPipeline((data) =>
-        postResponse({ status: 'progress', data }),
-      )
-      const englishSummary = await runSummary(summarizer, message.text)
-
       const translator = await getTranslatorPipeline((data) =>
         postResponse({ status: 'progress', data }),
       )
-      const thaiSummary = await runTranslation(translator, englishSummary)
+
+      const englishInput = isThaiText(message.text)
+        ? await runTranslation(translator, message.text, 'th', 'en')
+        : message.text
+
+      const summarizer = await getSummarizerPipeline((data) =>
+        postResponse({ status: 'progress', data }),
+      )
+      const englishSummary = await runSummary(summarizer, englishInput)
+
+      const thaiSummary = await runTranslation(translator, englishSummary, 'en', 'th')
 
       postResponse({ status: 'complete', summary: thaiSummary })
     } catch (error) {

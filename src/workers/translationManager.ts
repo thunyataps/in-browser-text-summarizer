@@ -47,8 +47,19 @@ async function loadTranslator(onProgress: (data: unknown) => void): Promise<Tran
   }
 }
 
-export async function runTranslation(translator: TranslatorPipeline, text: string): Promise<string> {
-  const output = await translator(text, { src_lang: 'en', tgt_lang: 'th' })
+export async function runTranslation(
+  translator: TranslatorPipeline,
+  text: string,
+  srcLang: string = 'en',
+  tgtLang: string = 'th',
+): Promise<string> {
+  const output = await translator(text, {
+    src_lang: srcLang,
+    tgt_lang: tgtLang,
+    max_new_tokens: 256,
+    repetition_penalty: 1.3,
+    no_repeat_ngram_size: 3,
+  })
   return output[0].translation_text.trim()
 }
 
