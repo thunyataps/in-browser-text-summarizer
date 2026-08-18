@@ -52,6 +52,21 @@ describe('pipelineManager', () => {
     expect(pipelineMock).toHaveBeenCalledTimes(1)
   })
 
+  it('retries on the next call after both webgpu and wasm loads fail', async () => {
+    pipelineMock.mockRejectedValueOnce(new Error('no webgpu'))
+    pipelineMock.mockRejectedValueOnce(new Error('no wasm'))
+
+    await expect(getSummarizerPipeline(() => {})).rejects.toThrow('no wasm')
+
+    const fakePipeline = vi.fn()
+    pipelineMock.mockResolvedValueOnce(fakePipeline)
+
+    const result = await getSummarizerPipeline(() => {})
+
+    expect(result).toBe(fakePipeline)
+    expect(pipelineMock).toHaveBeenCalledTimes(3)
+  })
+
   it('runSummary returns the trimmed summary text', async () => {
     const fakeSummarizer = vi.fn().mockResolvedValue([{ summary_text: '  a short summary  ' }])
 

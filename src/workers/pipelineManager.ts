@@ -13,7 +13,12 @@ export async function getSummarizerPipeline(
   if (!pipelinePromise) {
     pipelinePromise = loadPipeline(onProgress)
   }
-  return pipelinePromise
+  try {
+    return await pipelinePromise
+  } catch (error) {
+    pipelinePromise = null
+    throw error
+  }
 }
 
 async function loadPipeline(onProgress: (data: unknown) => void): Promise<SummarizerPipeline> {
