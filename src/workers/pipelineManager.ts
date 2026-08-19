@@ -49,7 +49,7 @@ async function loadPipeline(onProgress: (data: unknown) => void): Promise<Summar
 
 export async function runSummary(summarizer: SummarizerPipeline, text: string): Promise<string> {
   const output = await summarizer(text, {
-    max_new_tokens: 150,
+    max_new_tokens: 220,
     min_new_tokens: 30,
     no_repeat_ngram_size: 3,
     num_beams: 4,
