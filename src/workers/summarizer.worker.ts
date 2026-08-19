@@ -27,23 +27,20 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 
   if (message.type === 'summarize') {
     try {
-      const translator = await getTranslatorPipeline((data) =>
-        postResponse({ status: 'progress', data }),
-      )
-
-      const englishInput = isThaiText(message.text)
-        ? await runTranslation(translator, message.text, 'th', 'en')
-        : message.text
+      let englishInput = message.text
+      if (isThaiText(message.text)) {
+        const translator = await getTranslatorPipeline((data) =>
+          postResponse({ status: 'progress', data }),
+        )
+        englishInput = await runTranslation(translator, message.text, 'th', 'en')
+      }
 
       const summarizer = await getSummarizerPipeline((data) =>
         postResponse({ status: 'progress', data }),
       )
       const englishSummary = await runSummary(summarizer, englishInput)
-      console.info('[summarizer.worker] English summary:', englishSummary)
 
-      const thaiSummary = await runTranslation(translator, englishSummary, 'en', 'th')
-
-      postResponse({ status: 'complete', summary: thaiSummary })
+      postResponse({ status: 'complete', summary: englishSummary })
     } catch (error) {
       postResponse({ status: 'error', message: toErrorMessage(error) })
     }
