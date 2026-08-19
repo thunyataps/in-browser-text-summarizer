@@ -74,14 +74,26 @@ live there; don't re-litigate them without checking it first.
   is no en→th leg anymore. The translator is only loaded when Thai input is
   detected, lazily inside the `summarize` handler, never during the initial
   `load` warm-up.
-- **Backend**: try WebGPU, fall back to WASM automatically for both models.
-  Not a user-facing toggle. The WebGPU attempt is wrapped in a stall guard
-  (`src/workers/pipelineLoadGuard.ts`, 15s of no progress event) that forces
-  the WASM fallback — added after a WebGPU load hung long enough to freeze
-  the whole machine (likely GPU driver/VRAM pressure from loading two large
-  quantized models back-to-back, not just a tab freeze). A slow-but-progressing
-  download is never mistaken for a stall since any progress event resets the
-  timer.
+- **Backend**: not a user-facing toggle either way.
+  - **Summarizer** (`pipelineManager.ts`): **WASM only**, no WebGPU attempt.
+    Confirmed (2026-08-19) that the WebGPU device silently ignores/mishandles
+    `min_new_tokens`/`max_new_tokens` for this model — generation stopped at
+    the same premature point regardless of what those params were set to,
+    while the identical input on WASM completed correctly every time. Since
+    generate-param correctness can't be trusted on WebGPU for this model,
+    WASM is used unconditionally rather than attempted-then-verified. Don't
+    reintroduce a WebGPU attempt here without confirming the underlying
+    transformers.js issue is fixed.
+  - **Translator** (`translationManager.ts`): still tries WebGPU, falls back
+    to WASM. The WebGPU attempt is wrapped in a stall guard
+    (`src/workers/pipelineLoadGuard.ts`, 15s of no progress event) that
+    forces the WASM fallback — added after a WebGPU load hung long enough to
+    freeze the whole machine (likely GPU driver/VRAM pressure from loading
+    two large quantized models back-to-back, not just a tab freeze). A
+    slow-but-progressing download is never mistaken for a stall since any
+    progress event resets the timer. Hasn't shown the same premature-EOS
+    symptom as the summarizer, but hasn't been stress-tested for it either —
+    if garbled/truncated th→en translations show up, check this first.
 - **Model load timing**: lazy — starts on first "Summarize" click, not on page
   mount. Translator loads on-demand inside the `summarize` handler, not during
   the initial `load` warm-up (which only loads the summarizer).

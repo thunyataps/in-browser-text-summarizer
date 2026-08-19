@@ -14,28 +14,13 @@ describe('pipelineManager', () => {
     resetPipelineForTesting()
   })
 
-  it('loads the pipeline with webgpu device first', async () => {
+  it('loads the pipeline with wasm device', async () => {
     const fakePipeline = vi.fn()
     pipelineMock.mockResolvedValueOnce(fakePipeline)
 
     await getSummarizerPipeline(() => {})
 
     expect(pipelineMock).toHaveBeenCalledWith(
-      'summarization',
-      'Xenova/distilbart-cnn-6-6',
-      expect.objectContaining({ device: 'webgpu', dtype: 'q8' }),
-    )
-  })
-
-  it('falls back to wasm when the webgpu load fails', async () => {
-    const fakePipeline = vi.fn()
-    pipelineMock.mockRejectedValueOnce(new Error('no webgpu'))
-    pipelineMock.mockResolvedValueOnce(fakePipeline)
-
-    await getSummarizerPipeline(() => {})
-
-    expect(pipelineMock).toHaveBeenNthCalledWith(
-      2,
       'summarization',
       'Xenova/distilbart-cnn-6-6',
       expect.objectContaining({ device: 'wasm', dtype: 'q8' }),
@@ -52,8 +37,7 @@ describe('pipelineManager', () => {
     expect(pipelineMock).toHaveBeenCalledTimes(1)
   })
 
-  it('retries on the next call after both webgpu and wasm loads fail', async () => {
-    pipelineMock.mockRejectedValueOnce(new Error('no webgpu'))
+  it('retries on the next call after a failed load', async () => {
     pipelineMock.mockRejectedValueOnce(new Error('no wasm'))
 
     await expect(getSummarizerPipeline(() => {})).rejects.toThrow('no wasm')
@@ -64,7 +48,7 @@ describe('pipelineManager', () => {
     const result = await getSummarizerPipeline(() => {})
 
     expect(result).toBe(fakePipeline)
-    expect(pipelineMock).toHaveBeenCalledTimes(3)
+    expect(pipelineMock).toHaveBeenCalledTimes(2)
   })
 
   it('runSummary returns the trimmed summary text', async () => {
