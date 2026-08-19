@@ -42,6 +42,19 @@ live there; don't re-litigate them without checking it first.
   alone blocks verbatim n-gram loops (the actual bug) without penalizing
   isolated word reuse — don't reintroduce `repetition_penalty` without
   testing translation quality on multi-sentence input first.
+- **`runSummary()`'s `min_new_tokens: 60`**: raised from 30 after confirming
+  (2026-08-19) that the WebGPU backend emits a premature EOS token around
+  ~55-60 generated tokens on some inputs, cutting summaries off mid-sentence
+  — a quantization/numerics artifact specific to WebGPU (identical input run
+  locally through Node/WASM generates the full sentence every time, at any
+  `max_new_tokens` cap, since it doesn't hit a cap at all — it stops
+  naturally and correctly well under 150 tokens). `min_new_tokens` blocks
+  the EOS logit until the floor is reached, which sidesteps the bad EOS
+  prediction rather than fixing it at the source. Raising `max_new_tokens`
+  alone (150→220) did **not** fix this — verify that any future tuning here
+  is confirmed against the WebGPU backend specifically (check the console
+  log line `[pipelineManager] Loaded summarization pipeline on backend:
+  webgpu` vs `wasm`), not just a local Node/WASM test.
 - **Decoding strategy**: both use `num_beams: 4` (beam search, still fully
   local/in-browser — no external API). Added because greedy decoding
   (the implicit default) produced confidently-wrong word choices even after
